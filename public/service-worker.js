@@ -1,4 +1,5 @@
-const CACHE_NAME = 'wms-cache-v1';
+const CACHE_VERSION = '1.0.0';
+const CACHE_NAME = `wms-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
   '/index.html',
@@ -6,6 +7,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
@@ -19,7 +21,16 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response;
         }
-        return fetch(event.request);
+        return fetch(event.request).then((response) => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        });
       })
   );
 });
@@ -34,6 +45,6 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
