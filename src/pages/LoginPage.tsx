@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
+import { AUTH_URL } from '@/utils/updateApiUrls';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
 }
 
-const API_URL = 'https://functions.poehali.dev/f567299e-ff65-4a50-b8fa-ac9d7433171c';
+const API_URL = AUTH_URL;
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');

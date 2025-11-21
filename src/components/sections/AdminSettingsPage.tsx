@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function AdminSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -12,7 +13,20 @@ export default function AdminSettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
+  const [apiBaseUrl, setApiBaseUrl] = useState('');
+  const [databaseUrl, setDatabaseUrl] = useState('');
+  const [currentApiUrl, setCurrentApiUrl] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('vps_config');
+    if (savedConfig) {
+      const config = JSON.parse(savedConfig);
+      setApiBaseUrl(config.apiBaseUrl || '');
+      setDatabaseUrl(config.databaseUrl || '');
+    }
+    setCurrentApiUrl(window.location.origin);
+  }, []);
 
   const handleExportSettings = () => {
     const addresses = localStorage.getItem('server_addresses');
@@ -124,6 +138,34 @@ export default function AdminSettingsPage() {
     });
   };
 
+  const handleSaveVpsConfig = () => {
+    const config = {
+      apiBaseUrl: apiBaseUrl || currentApiUrl,
+      databaseUrl: databaseUrl,
+    };
+
+    localStorage.setItem('vps_config', JSON.stringify(config));
+
+    window.dispatchEvent(new CustomEvent('vps-config-updated', { 
+      detail: config 
+    }));
+
+    toast({
+      title: 'Успешно',
+      description: 'Настройки VPS сохранены и применены',
+    });
+  };
+
+  const handleAutoDetect = () => {
+    const detectedUrl = window.location.origin;
+    setApiBaseUrl(detectedUrl);
+    
+    toast({
+      title: 'Автоопределение',
+      description: `Обнаружен адрес: ${detectedUrl}`,
+    });
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <Card>
@@ -133,10 +175,18 @@ export default function AdminSettingsPage() {
             Администрирование
           </CardTitle>
           <CardDescription>
-            Управление учетными данными и экспорт/импорт настроек
+            Управление учетными данными, настройками VPS и экспорт/импорт
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <Tabs defaultValue="credentials" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="credentials">Учетные данные</TabsTrigger>
+              <TabsTrigger value="vps">Настройки VPS</TabsTrigger>
+              <TabsTrigger value="export">Экспорт/Импорт</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="credentials" className="space-y-4 mt-6">
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Смена учетных данных</h3>
             
@@ -202,30 +252,106 @@ export default function AdminSettingsPage() {
               Изменить данные
             </Button>
           </div>
+            </TabsContent>
 
-          <div className="border-t pt-6 space-y-4">
-            <h3 className="text-lg font-semibold">Экспорт / Импорт настроек</h3>
-            
-            <div className="flex gap-2">
-              <Button onClick={handleExportSettings} variant="outline" className="flex-1">
-                <Icon name="Download" size={16} className="mr-2" />
-                Экспортировать
-              </Button>
-              
-              <Button variant="outline" className="flex-1" asChild>
-                <label className="cursor-pointer">
-                  <Icon name="Upload" size={16} className="mr-2" />
-                  Импортировать
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportSettings}
-                    className="hidden"
+            <TabsContent value="vps" className="space-y-4 mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Настройки для VPS</h3>
+                <p className="text-sm text-muted-foreground">
+                  Настройте подключение к серверу при развертывании на VPS. Система автоматически применит изменения ко всем компонентам.
+                </p>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <Icon name="Info" size={20} className="text-blue-600 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-blue-900">Текущий адрес сайта:</p>
+                      <p className="text-blue-700 font-mono">{currentApiUrl}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="api-url">Адрес API сервера</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="api-url"
+                      type="text"
+                      value={apiBaseUrl}
+                      onChange={(e) => setApiBaseUrl(e.target.value)}
+                      placeholder="http://your-server.com:3000"
+                    />
+                    <Button onClick={handleAutoDetect} variant="outline">
+                      <Icon name="Radar" size={16} className="mr-2" />
+                      Авто
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Укажите полный URL вашего API сервера (с протоколом и портом)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="db-url">Database URL (опционально)</Label>
+                  <Input
+                    id="db-url"
+                    type="text"
+                    value={databaseUrl}
+                    onChange={(e) => setDatabaseUrl(e.target.value)}
+                    placeholder="postgresql://user:pass@host:5432/db"
                   />
-                </label>
-              </Button>
-            </div>
-          </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Строка подключения к PostgreSQL базе данных
+                  </p>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <Icon name="AlertCircle" size={20} className="text-amber-600 mt-0.5" />
+                    <div className="text-sm text-amber-900">
+                      <p className="font-semibold mb-1">Что произойдет после сохранения:</p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li>Все API запросы будут перенаправлены на новый адрес</li>
+                        <li>Изменения применятся автоматически без перезагрузки</li>
+                        <li>Настройки сохранятся в localStorage браузера</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <Button onClick={handleSaveVpsConfig} className="w-full">
+                  <Icon name="Save" size={16} className="mr-2" />
+                  Сохранить и применить настройки
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="export" className="space-y-4 mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Экспорт / Импорт настроек</h3>
+                
+                <div className="flex gap-2">
+                  <Button onClick={handleExportSettings} variant="outline" className="flex-1">
+                    <Icon name="Download" size={16} className="mr-2" />
+                    Экспортировать
+                  </Button>
+                  
+                  <Button variant="outline" className="flex-1" asChild>
+                    <label className="cursor-pointer">
+                      <Icon name="Upload" size={16} className="mr-2" />
+                      Импортировать
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportSettings}
+                        className="hidden"
+                      />
+                    </label>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
