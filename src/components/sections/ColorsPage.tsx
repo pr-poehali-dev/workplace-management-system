@@ -69,34 +69,6 @@ export default function ColorsPage({ user }: { user: User }) {
       title: 'Удалено',
       description: 'Цвет удален',
     });
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось создать цвет',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      const response = await fetch(`${API_URL}/colors?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        await fetchColors();
-        toast({
-          title: 'Удалено',
-          description: 'Цвет удален',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось удалить цвет',
-        variant: 'destructive',
-      });
-    }
   };
 
   return (
