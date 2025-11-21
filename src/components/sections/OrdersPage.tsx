@@ -23,7 +23,7 @@ interface Order {
   createdAt: Date;
 }
 
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+const API_URL = 'BACKEND_ORDERS_URL';
 
 export default function OrdersPage({ user }: { user: User }) {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -43,9 +43,16 @@ export default function OrdersPage({ user }: { user: User }) {
   const canEdit = user.role === 'admin' || user.role === 'manager';
 
   useEffect(() => {
-    fetchOrders();
-    fetchMaterials();
-    fetchColors();
+    setMaterials([
+      { id: 1, name: 'Панель 3000х600' },
+      { id: 2, name: 'Профиль алюминиевый' },
+    ]);
+    setColors([
+      { id: 1, name: 'Белый' },
+      { id: 2, name: 'Черный' },
+    ]);
+    setOrders([]);
+    setLoading(false);
   }, []);
 
   const fetchMaterials = async () => {

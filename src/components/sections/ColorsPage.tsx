@@ -16,41 +16,27 @@ interface ColorItem {
   usage: number;
 }
 
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+const API_URL = 'BACKEND_COLORS_URL';
 
 export default function ColorsPage({ user }: { user: User }) {
   const [colors, setColors] = useState<ColorItem[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchColors();
+    setColors([
+      { id: '1', name: 'Белый', hex: '#FFFFFF', usage: 15 },
+      { id: '2', name: 'Черный', hex: '#000000', usage: 12 },
+      { id: '3', name: 'Коричневый', hex: '#8B4513', usage: 8 },
+      { id: '4', name: 'Серый', hex: '#808080', usage: 5 },
+    ]);
   }, []);
 
-  const fetchColors = async () => {
-    try {
-      const response = await fetch(`${API_URL}/colors`);
-      if (response.ok) {
-        const data = await response.json();
-        setColors(data.map((c: any) => ({
-          id: c.id.toString(),
-          name: c.name,
-          hex: c.hex_code || '#808080',
-          usage: c.usage_count || 0,
-        })));
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось загрузить цвета',
-        variant: 'destructive',
-      });
-    }
-  };
+
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', hex_code: '#808080' });
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!formData.name) {
       toast({
         title: 'Ошибка',
@@ -60,23 +46,29 @@ export default function ColorsPage({ user }: { user: User }) {
       return;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/colors`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+    const newColor = {
+      id: Date.now().toString(),
+      name: formData.name,
+      hex: formData.hex_code,
+      usage: 0,
+    };
 
-      if (response.ok) {
-        await fetchColors();
-        setShowForm(false);
-        setFormData({ name: '', hex_code: '#808080' });
-        toast({
-          title: 'Создано',
-          description: 'Цвет успешно добавлен',
-        });
-      }
-    } catch (error) {
+    setColors([...colors, newColor]);
+    setShowForm(false);
+    setFormData({ name: '', hex_code: '#808080' });
+    toast({
+      title: 'Создано',
+      description: 'Цвет добавлен',
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm('Удалить цвет?')) return;
+    setColors(colors.filter(c => c.id !== id));
+    toast({
+      title: 'Удалено',
+      description: 'Цвет удален',
+    });
       toast({
         title: 'Ошибка',
         description: 'Не удалось создать цвет',
