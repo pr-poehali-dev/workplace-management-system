@@ -389,7 +389,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         elif action == 'categories':
             if method == 'GET':
-                cur.execute("SELECT * FROM categories ORDER BY name")
+                cur.execute("""
+                    SELECT c.*, COUNT(m.id) as material_count 
+                    FROM categories c
+                    LEFT JOIN materials m ON c.id = m.category_id
+                    GROUP BY c.id
+                    ORDER BY c.name
+                """)
                 categories = cur.fetchall()
                 return {
                     'statusCode': 200,
@@ -397,6 +403,78 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps([dict(c) for c in categories], default=str),
                     'isBase64Encoded': False
                 }
+            
+            elif method == 'POST':
+                body = json.loads(event.get('body', '{}'))
+                name = body.get('name')
+                description = body.get('description', '')
+                
+                cur.execute(
+                    "INSERT INTO categories (name, description) VALUES (%s, %s) RETURNING id",
+                    (name, description)
+                )
+                category_id = cur.fetchone()['id']
+                conn.commit()
+                
+                return {
+                    'statusCode': 201,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'id': category_id}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'PUT':
+                body = json.loads(event.get('body', '{}'))
+                category_id = body.get('id')
+                
+                update_fields = []
+                update_values = []
+                
+                if 'name' in body:
+                    update_fields.append('name = %s')
+                    update_values.append(body['name'])
+                if 'description' in body:
+                    update_fields.append('description = %s')
+                    update_values.append(body['description'])
+                
+                if update_fields:
+                    update_values.append(category_id)
+                    query = f"UPDATE categories SET {', '.join(update_fields)} WHERE id = %s"
+                    cur.execute(query, update_values)
+                    conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'DELETE':
+                query_params = event.get('queryStringParameters', {})
+                category_id = query_params.get('id')
+                
+                if category_id:
+                    cur.execute("SELECT COUNT(*) as count FROM materials WHERE category_id = %s", (category_id,))
+                    count = cur.fetchone()['count']
+                    
+                    if count > 0:
+                        return {
+                            'statusCode': 400,
+                            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                            'body': json.dumps({'error': 'Cannot delete category with materials'}),
+                            'isBase64Encoded': False
+                        }
+                    
+                    cur.execute("DELETE FROM categories WHERE id = %s", (category_id,))
+                    conn.commit()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'success': True}),
+                        'isBase64Encoded': False
+                    }
         
         elif action == 'shipments':
             if method == 'GET':
