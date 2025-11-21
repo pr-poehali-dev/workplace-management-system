@@ -11,7 +11,7 @@ interface LoginPageProps {
   onLogin: (user: User) => void;
 }
 
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+const API_URL = 'https://functions.poehali.dev/f567299e-ff65-4a50-b8fa-ac9d7433171c';
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
