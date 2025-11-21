@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
+import { exportToExcel, printTable } from '@/utils/exportUtils';
 
 interface Order {
   id: string;
@@ -213,12 +214,35 @@ export default function OrdersPage({ user }: { user: User }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold">Заявки</h2>
-        {canEdit && (
-          <Button onClick={() => setShowForm(!showForm)}>
-            <Icon name="Plus" size={20} className="mr-2" />
-            Создать заявку
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => exportToExcel(
+            orders.map(o => ({
+              'Материал': o.material,
+              'Размер': o.size || '-',
+              'Цвет': o.color || '-',
+              'Количество': `${o.quantity} ${o.unit}`,
+              'Выполнено': `${o.completed} ${o.unit}`,
+              'Статус': getStatusLabel(o.status),
+              'Создал': o.createdBy,
+              'Дата': o.createdAt.toLocaleDateString('ru-RU')
+            })),
+            'Заявки',
+            'Заявки'
+          )}>
+            <Icon name="Download" size={20} className="mr-2" />
+            Excel
           </Button>
-        )}
+          <Button variant="outline" onClick={printTable}>
+            <Icon name="Printer" size={20} className="mr-2" />
+            Печать
+          </Button>
+          {canEdit && (
+            <Button onClick={() => setShowForm(!showForm)}>
+              <Icon name="Plus" size={20} className="mr-2" />
+              Создать заявку
+            </Button>
+          )}
+        </div>
       </div>
 
       {showForm && (

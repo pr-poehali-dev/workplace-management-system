@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
+import { exportToExcel, printTable } from '@/utils/exportUtils';
 
 interface WarehouseItem {
   id: string;
@@ -51,7 +52,27 @@ export default function WarehousePage({ user }: { user: User }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-3xl font-bold">Склад</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold">Склад</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => exportToExcel(
+            items.map(i => ({
+              'Материал': i.name,
+              'Цвет': i.color,
+              'Количество': `${i.quantity} ${i.unit}`
+            })),
+            'Склад',
+            'Склад'
+          )}>
+            <Icon name="Download" size={20} className="mr-2" />
+            Excel
+          </Button>
+          <Button variant="outline" onClick={printTable}>
+            <Icon name="Printer" size={20} className="mr-2" />
+            Печать
+          </Button>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {items.map((item) => (

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
+import { exportToExcel, printTable } from '@/utils/exportUtils';
 
 const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
 
@@ -124,10 +125,30 @@ export default function IncomingPage({ user }: { user: User }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold">Приход материалов</h2>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Icon name="Plus" size={20} className="mr-2" />
-          Добавить приход
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => exportToExcel(
+            items.map(i => ({
+              'Материал': i.material_name,
+              'Цвет': i.color_name || '-',
+              'Количество': `${i.quantity} ${i.unit}`,
+              'Добавил': i.created_by_name,
+              'Дата': new Date(i.created_at).toLocaleDateString('ru-RU')
+            })),
+            'Приход_материалов',
+            'Приход'
+          )}>
+            <Icon name="Download" size={20} className="mr-2" />
+            Excel
+          </Button>
+          <Button variant="outline" onClick={printTable}>
+            <Icon name="Printer" size={20} className="mr-2" />
+            Печать
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Icon name="Plus" size={20} className="mr-2" />
+            Добавить приход
+          </Button>
+        </div>
       </div>
 
       {showForm && (
