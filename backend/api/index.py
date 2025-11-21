@@ -129,6 +129,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'body': json.dumps({'success': True}),
                         'isBase64Encoded': False
                     }
+            
+            elif method == 'DELETE':
+                query_params = event.get('queryStringParameters', {})
+                order_id = query_params.get('id')
+                
+                if order_id:
+                    cur.execute("UPDATE orders SET status = 'new', completed = 0 WHERE id = %s", (order_id,))
+                    conn.commit()
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'success': True}),
+                        'isBase64Encoded': False
+                    }
         
         elif action == 'warehouse':
             cur.execute("""
@@ -147,30 +161,101 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         elif action == 'colors':
-            cur.execute("SELECT * FROM colors ORDER BY usage_count DESC")
-            colors = cur.fetchall()
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps([dict(c) for c in colors], default=str),
-                'isBase64Encoded': False
-            }
+            if method == 'GET':
+                cur.execute("SELECT * FROM colors ORDER BY usage_count DESC")
+                colors = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps([dict(c) for c in colors], default=str),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'POST':
+                body = json.loads(event.get('body', '{}'))
+                cur.execute(
+                    "INSERT INTO colors (name, hex_code, usage_count) VALUES (%s, %s, 0) RETURNING id",
+                    (body.get('name'), body.get('hex_code'))
+                )
+                color_id = cur.fetchone()['id']
+                conn.commit()
+                return {
+                    'statusCode': 201,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'id': color_id}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'DELETE':
+                query_params = event.get('queryStringParameters', {})
+                color_id = query_params.get('id')
+                
+                if color_id:
+                    cur.execute("UPDATE colors SET usage_count = 0 WHERE id = %s", (color_id,))
+                    conn.commit()
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'success': True}),
+                        'isBase64Encoded': False
+                    }
         
         elif action == 'materials':
-            cur.execute("""
-                SELECT m.*, c.name as color_name, cat.name as category_name
-                FROM materials m
-                LEFT JOIN colors c ON m.color_id = c.id
-                LEFT JOIN categories cat ON m.category_id = cat.id
-                ORDER BY m.name
-            """)
-            materials = cur.fetchall()
-            return {
-                'statusCode': 200,
-                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
-                'body': json.dumps([dict(m) for m in materials], default=str),
-                'isBase64Encoded': False
-            }
+            if method == 'GET':
+                cur.execute("""
+                    SELECT m.*, c.name as color_name, cat.name as category_name
+                    FROM materials m
+                    LEFT JOIN colors c ON m.color_id = c.id
+                    LEFT JOIN categories cat ON m.category_id = cat.id
+                    ORDER BY m.name
+                """)
+                materials = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps([dict(m) for m in materials], default=str),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'POST':
+                body = json.loads(event.get('body', '{}'))
+                cur.execute(
+                    "INSERT INTO materials (name, category_id, color_id) VALUES (%s, %s, %s) RETURNING id",
+                    (body.get('name'), body.get('category_id'), body.get('color_id'))
+                )
+                material_id = cur.fetchone()['id']
+                conn.commit()
+                return {
+                    'statusCode': 201,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'id': material_id}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'DELETE':
+                query_params = event.get('queryStringParameters', {})
+                material_id = query_params.get('id')
+                
+                if material_id:
+                    cur.execute("UPDATE materials SET color_id = NULL WHERE id = %s", (material_id,))
+                    conn.commit()
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'success': True}),
+                        'isBase64Encoded': False
+                    }
+        
+        elif action == 'categories':
+            if method == 'GET':
+                cur.execute("SELECT * FROM categories ORDER BY name")
+                categories = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps([dict(c) for c in categories], default=str),
+                    'isBase64Encoded': False
+                }
         
         return {
             'statusCode': 404,

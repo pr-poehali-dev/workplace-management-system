@@ -28,14 +28,48 @@ export default function OrdersPage({ user }: { user: User }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [colors, setColors] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    material_id: '',
+    size: '',
+    color_id: '',
+    quantity: '',
+    unit: 'шт'
+  });
   const { toast } = useToast();
 
   const canEdit = user.role === 'admin' || user.role === 'manager';
 
   useEffect(() => {
     fetchOrders();
+    fetchMaterials();
+    fetchColors();
   }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      const response = await fetch(`${API_URL}/materials`);
+      if (response.ok) {
+        const data = await response.json();
+        setMaterials(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch materials');
+    }
+  };
+
+  const fetchColors = async () => {
+    try {
+      const response = await fetch(`${API_URL}/colors`);
+      if (response.ok) {
+        const data = await response.json();
+        setColors(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch colors');
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -106,12 +140,73 @@ export default function OrdersPage({ user }: { user: User }) {
     }
   };
 
-  const handleDelete = (orderId: string) => {
-    setOrders(orders.filter(o => o.id !== orderId));
-    toast({
-      title: 'Удалено',
-      description: 'Заявка удалена',
-    });
+  const handleDelete = async (orderId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/orders?id=${orderId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        await fetchOrders();
+        toast({
+          title: 'Удалено',
+          description: 'Заявка удалена',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить заявку',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCreateOrder = async () => {
+    if (!formData.material_id || !formData.quantity) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните обязательные поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          material_id: parseInt(formData.material_id),
+          color_id: formData.color_id ? parseInt(formData.color_id) : null,
+          quantity: parseFloat(formData.quantity),
+          created_by: parseInt(user.id),
+        }),
+      });
+
+      if (response.ok) {
+        await fetchOrders();
+        setShowForm(false);
+        setFormData({
+          material_id: '',
+          size: '',
+          color_id: '',
+          quantity: '',
+          unit: 'шт',
+        });
+        toast({
+          title: 'Создано',
+          description: 'Заявка успешно создана',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать заявку',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -134,22 +229,40 @@ export default function OrdersPage({ user }: { user: User }) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Материал</Label>
-                <Input placeholder="Выберите из базы материалов" />
+                <Label>Материал *</Label>
+                <Select value={formData.material_id} onValueChange={(v) => setFormData({...formData, material_id: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите материал" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materials.map((m) => (
+                      <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Размер (необязательно)</Label>
-                <Input placeholder="Например: 1500x1000" />
+                <Label>Размер</Label>
+                <Input placeholder="1500x1000" value={formData.size} onChange={(e) => setFormData({...formData, size: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <Label>Цвет (необязательно)</Label>
-                <Input placeholder="Выберите из каталога цветов" />
+                <Label>Цвет</Label>
+                <Select value={formData.color_id} onValueChange={(v) => setFormData({...formData, color_id: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите цвет" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {colors.map((c) => (
+                      <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label>Количество</Label>
+                <Label>Количество *</Label>
                 <div className="flex gap-2">
-                  <Input type="number" placeholder="0" />
-                  <Select defaultValue="шт">
+                  <Input type="number" placeholder="0" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value})} />
+                  <Select value={formData.unit} onValueChange={(v) => setFormData({...formData, unit: v})}>
                     <SelectTrigger className="w-24">
                       <SelectValue />
                     </SelectTrigger>
@@ -163,7 +276,7 @@ export default function OrdersPage({ user }: { user: User }) {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <Button>Создать</Button>
+              <Button onClick={handleCreateOrder}>Создать</Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>Отмена</Button>
             </div>
           </CardContent>
