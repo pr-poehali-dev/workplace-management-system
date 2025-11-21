@@ -70,7 +70,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <Icon name="Factory" size={32} className="text-white" />
           </div>
           <CardTitle className="text-3xl font-bold">Система управления производством</CardTitle>
-          <p className="text-muted-foreground">Введите данные для входа</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
