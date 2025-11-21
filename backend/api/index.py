@@ -616,6 +616,95 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             'isBase64Encoded': False
                         }
         
+        elif action == 'cutting-projects':
+            if method == 'GET':
+                cur.execute("""
+                    SELECT cp.*, u.full_name as created_by_name
+                    FROM cutting_projects cp
+                    LEFT JOIN users u ON cp.created_by = u.id
+                    ORDER BY cp.updated_at DESC
+                """)
+                projects = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps([dict(p) for p in projects], default=str),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'POST':
+                body = json.loads(event.get('body', '{}'))
+                name = body.get('name')
+                description = body.get('description', '')
+                sheets_data = json.dumps(body.get('sheets_data', []))
+                optimization_data = json.dumps(body.get('optimization_data'))
+                created_by = body.get('created_by')
+                
+                cur.execute(
+                    """INSERT INTO cutting_projects (name, description, sheets_data, optimization_data, created_by)
+                       VALUES (%s, %s, %s::jsonb, %s::jsonb, %s) RETURNING id""",
+                    (name, description, sheets_data, optimization_data, created_by)
+                )
+                project_id = cur.fetchone()['id']
+                conn.commit()
+                
+                return {
+                    'statusCode': 201,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'id': project_id}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'PUT':
+                body = json.loads(event.get('body', '{}'))
+                project_id = body.get('id')
+                
+                update_fields = []
+                update_values = []
+                
+                if 'name' in body:
+                    update_fields.append('name = %s')
+                    update_values.append(body['name'])
+                if 'description' in body:
+                    update_fields.append('description = %s')
+                    update_values.append(body['description'])
+                if 'sheets_data' in body:
+                    update_fields.append('sheets_data = %s::jsonb')
+                    update_values.append(json.dumps(body['sheets_data']))
+                if 'optimization_data' in body:
+                    update_fields.append('optimization_data = %s::jsonb')
+                    update_values.append(json.dumps(body['optimization_data']))
+                
+                update_fields.append('updated_at = CURRENT_TIMESTAMP')
+                
+                if update_fields:
+                    update_values.append(project_id)
+                    query = f"UPDATE cutting_projects SET {', '.join(update_fields)} WHERE id = %s"
+                    cur.execute(query, update_values)
+                    conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True}),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'DELETE':
+                query_params = event.get('queryStringParameters', {})
+                project_id = query_params.get('id')
+                
+                if project_id:
+                    cur.execute("DELETE FROM cutting_projects WHERE id = %s", (project_id,))
+                    conn.commit()
+                    
+                    return {
+                        'statusCode': 200,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'success': True}),
+                        'isBase64Encoded': False
+                    }
+        
         return {
             'statusCode': 404,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},

@@ -1,9 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +23,19 @@ import {
   Sheet,
   OptimizedSheet
 } from '@/utils/cuttingOptimizer';
+
+const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+
+interface CuttingProject {
+  id: number;
+  name: string;
+  description?: string;
+  sheets_data: CuttingRow[];
+  optimization_data?: any;
+  created_by_name: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface CuttingRow {
   [key: string]: string;
@@ -37,7 +58,136 @@ export default function CuttingPage({ user }: { user: User }) {
   const [showReport, setShowReport] = useState(false);
   const [sheets, setSheets] = useState<Sheet[]>(DEFAULT_SHEETS);
   const [newSheet, setNewSheet] = useState({ width: '', height: '', name: '' });
+  const [projects, setProjects] = useState<CuttingProject[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
+  const [saveFormData, setSaveFormData] = useState({ name: '', description: '' });
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch(`${API_URL}/cutting-projects`);
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch projects');
+    }
+  };
+
+  const handleSaveProject = async () => {
+    if (!saveFormData.name) {
+      toast({
+        title: 'Ошибка',
+        description: 'Введите название проекта',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const url = currentProjectId
+        ? `${API_URL}/cutting-projects`
+        : `${API_URL}/cutting-projects`;
+      const method = currentProjectId ? 'PUT' : 'POST';
+
+      const body: any = {
+        name: saveFormData.name,
+        description: saveFormData.description,
+        sheets_data: rows,
+        optimization_data: optimization,
+        created_by: parseInt(user.id),
+      };
+
+      if (currentProjectId) {
+        body.id = currentProjectId;
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (!currentProjectId) {
+          setCurrentProjectId(result.id);
+        }
+        await fetchProjects();
+        setShowSaveDialog(false);
+        setSaveFormData({ name: '', description: '' });
+        toast({
+          title: 'Сохранено',
+          description: 'Проект успешно сохранен',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить проект',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleLoadProject = (project: CuttingProject) => {
+    setRows(project.sheets_data);
+    setCurrentProjectId(project.id);
+    setSaveFormData({ name: project.name, description: project.description || '' });
+    setShowLoadDialog(false);
+    toast({
+      title: 'Загружено',
+      description: `Проект "${project.name}" загружен`,
+    });
+  };
+
+  const handleDeleteProject = async (id: number) => {
+    if (!confirm('Удалить проект?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/cutting-projects?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchProjects();
+        if (currentProjectId === id) {
+          setCurrentProjectId(null);
+        }
+        toast({
+          title: 'Удалено',
+          description: 'Проект удален',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить проект',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleNewProject = () => {
+    setRows(
+      Array(100).fill(null).map(() =>
+        COLUMNS.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
+      )
+    );
+    setCurrentProjectId(null);
+    setSaveFormData({ name: '', description: '' });
+    toast({
+      title: 'Новый проект',
+      description: 'Создан новый проект раскроя',
+    });
+  };
 
   const updateCell = (rowIndex: number, column: string, value: string) => {
     const newRows = [...rows];
@@ -140,8 +290,27 @@ export default function CuttingPage({ user }: { user: User }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Раскрой листов</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-3xl font-bold">Раскрой листов</h2>
+          {currentProjectId && (
+            <Badge className="bg-blue-500 text-white">
+              {saveFormData.name || `Проект #${currentProjectId}`}
+            </Badge>
+          )}
+        </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleNewProject}>
+            <Icon name="FilePlus" size={20} className="mr-2" />
+            Новый
+          </Button>
+          <Button variant="outline" onClick={() => setShowLoadDialog(true)}>
+            <Icon name="FolderOpen" size={20} className="mr-2" />
+            Загрузить
+          </Button>
+          <Button variant="outline" onClick={() => setShowSaveDialog(true)}>
+            <Icon name="Save" size={20} className="mr-2" />
+            Сохранить
+          </Button>
           <Button variant="outline" onClick={() => setShowReport(!showReport)}>
             <Icon name="FileText" size={20} className="mr-2" />
             {showReport ? 'Таблица' : 'Оптимизация'}
@@ -156,6 +325,97 @@ export default function CuttingPage({ user }: { user: User }) {
           </Button>
         </div>
       </div>
+
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{currentProjectId ? 'Обновить проект' : 'Сохранить проект'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Название проекта *</Label>
+              <Input
+                placeholder="Раскрой для объекта А"
+                value={saveFormData.name}
+                onChange={(e) => setSaveFormData({ ...saveFormData, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Описание</Label>
+              <Textarea
+                placeholder="Дополнительная информация о проекте"
+                value={saveFormData.description}
+                onChange={(e) => setSaveFormData({ ...saveFormData, description: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleSaveProject}>
+              {currentProjectId ? 'Обновить' : 'Сохранить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Загрузить проект</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto space-y-2">
+            {projects.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <Icon name="FolderOpen" size={48} className="mx-auto mb-2 opacity-20" />
+                <p>Нет сохраненных проектов</p>
+              </div>
+            ) : (
+              projects.map((project) => (
+                <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold mb-1">{project.name}</h4>
+                        {project.description && (
+                          <p className="text-sm text-muted-foreground mb-2">{project.description}</p>
+                        )}
+                        <div className="flex gap-4 text-xs text-muted-foreground">
+                          <span>Создал: {project.created_by_name}</span>
+                          <span>Обновлено: {new Date(project.updated_at).toLocaleDateString('ru-RU')}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleLoadProject(project)}
+                        >
+                          <Icon name="Download" size={16} className="mr-1" />
+                          Загрузить
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteProject(project.id)}
+                        >
+                          <Icon name="Trash2" size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLoadDialog(false)}>
+              Закрыть
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {!showReport ? (
         <Card>
