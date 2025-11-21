@@ -160,6 +160,147 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
+        elif action == 'incoming':
+            if method == 'GET':
+                cur.execute("""
+                    SELECT i.*, m.name as material_name, c.name as color_name, u.full_name as created_by_name
+                    FROM incoming i
+                    LEFT JOIN materials m ON i.material_id = m.id
+                    LEFT JOIN colors c ON i.color_id = c.id
+                    LEFT JOIN users u ON i.created_by = u.id
+                    ORDER BY i.created_at DESC
+                """)
+                items = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps([dict(i) for i in items], default=str),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'POST':
+                body = json.loads(event.get('body', '{}'))
+                material_id = body.get('material_id')
+                color_id = body.get('color_id')
+                quantity = body.get('quantity')
+                unit = body.get('unit')
+                created_by = body.get('created_by')
+                
+                cur.execute(
+                    """INSERT INTO incoming (material_id, color_id, quantity, unit, created_by)
+                       VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                    (material_id, color_id, quantity, unit, created_by)
+                )
+                incoming_id = cur.fetchone()['id']
+                
+                cur.execute(
+                    """SELECT * FROM warehouse 
+                       WHERE material_id = %s AND (color_id = %s OR (color_id IS NULL AND %s IS NULL))""",
+                    (material_id, color_id, color_id)
+                )
+                warehouse_item = cur.fetchone()
+                
+                if warehouse_item:
+                    cur.execute(
+                        """UPDATE warehouse SET quantity = quantity + %s, updated_at = CURRENT_TIMESTAMP
+                           WHERE id = %s""",
+                        (quantity, warehouse_item['id'])
+                    )
+                else:
+                    cur.execute(
+                        """INSERT INTO warehouse (material_id, color_id, quantity, unit)
+                           VALUES (%s, %s, %s, %s)""",
+                        (material_id, color_id, quantity, unit)
+                    )
+                
+                conn.commit()
+                return {
+                    'statusCode': 201,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'id': incoming_id}),
+                    'isBase64Encoded': False
+                }
+        
+        elif action == 'defects':
+            if method == 'GET':
+                cur.execute("""
+                    SELECT d.*, m.name as material_name, c.name as color_name, u.full_name as created_by_name
+                    FROM defects d
+                    LEFT JOIN materials m ON d.material_id = m.id
+                    LEFT JOIN colors c ON d.color_id = c.id
+                    LEFT JOIN users u ON d.created_by = u.id
+                    ORDER BY d.created_at DESC
+                """)
+                items = cur.fetchall()
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps([dict(i) for i in items], default=str),
+                    'isBase64Encoded': False
+                }
+            
+            elif method == 'POST':
+                body = json.loads(event.get('body', '{}'))
+                material_id = body.get('material_id')
+                color_id = body.get('color_id')
+                quantity = body.get('quantity')
+                unit = body.get('unit')
+                reason = body.get('reason', '')
+                created_by = body.get('created_by')
+                
+                cur.execute(
+                    """SELECT * FROM warehouse 
+                       WHERE material_id = %s AND (color_id = %s OR (color_id IS NULL AND %s IS NULL))""",
+                    (material_id, color_id, color_id)
+                )
+                warehouse_item = cur.fetchone()
+                
+                if warehouse_item and float(warehouse_item['quantity']) >= float(quantity):
+                    cur.execute(
+                        """UPDATE warehouse SET quantity = quantity - %s, updated_at = CURRENT_TIMESTAMP
+                           WHERE id = %s""",
+                        (quantity, warehouse_item['id'])
+                    )
+                    
+                    cur.execute(
+                        """INSERT INTO defects (material_id, color_id, quantity, unit, reason, created_by)
+                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                        (material_id, color_id, quantity, unit, reason, created_by)
+                    )
+                    defect_id = cur.fetchone()['id']
+                    
+                    conn.commit()
+                    return {
+                        'statusCode': 201,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'id': defect_id}),
+                        'isBase64Encoded': False
+                    }
+                else:
+                    return {
+                        'statusCode': 400,
+                        'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                        'body': json.dumps({'error': 'Insufficient quantity in warehouse'}),
+                        'isBase64Encoded': False
+                    }
+            
+            elif method == 'PUT':
+                body = json.loads(event.get('body', '{}'))
+                defect_id = body.get('id')
+                
+                cur.execute(
+                    """UPDATE defects SET status = 'disposed' WHERE id = %s""",
+                    (defect_id,)
+                )
+                conn.commit()
+                
+                return {
+                    'statusCode': 200,
+                    'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                    'body': json.dumps({'success': True}),
+                    'isBase64Encoded': False
+                }
+        
         elif action == 'colors':
             if method == 'GET':
                 cur.execute("SELECT * FROM colors ORDER BY usage_count DESC")
