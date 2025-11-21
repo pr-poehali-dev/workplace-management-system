@@ -272,6 +272,18 @@ export default function CuttingPage({ user }: { user: User }) {
     exportToExcel(data, 'Раскрой_листов', 'Раскрой');
   };
 
+  const handleExportSizes = () => {
+    const data = detailsData
+      .sort((a, b) => b.quantity - a.quantity)
+      .map((item, idx) => ({
+        '№': idx + 1,
+        'Размер': item.name,
+        'Количество': item.quantity,
+      }));
+
+    exportToExcel(data, 'Список_размеров', 'Размеры');
+  };
+
   const currentProject = projects.find((p) => p.id === currentProjectId);
 
   return (
@@ -377,7 +389,13 @@ export default function CuttingPage({ user }: { user: User }) {
       {detailsData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Список уникальных размеров ({detailsData.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Список уникальных размеров ({detailsData.length})</CardTitle>
+              <Button variant="outline" size="sm" onClick={handleExportSizes}>
+                <Icon name="Download" size={18} className="mr-2" />
+                Экспорт в Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
