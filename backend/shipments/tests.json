@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get all shipments",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "shipments": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

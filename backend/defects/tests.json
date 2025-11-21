@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get all defects",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "defects": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

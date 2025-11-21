@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Get all colors",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "colors": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
