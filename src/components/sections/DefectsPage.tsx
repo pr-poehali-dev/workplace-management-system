@@ -71,7 +71,7 @@ export default function DefectsPage({ user }: { user: User }) {
         setMaterials(data);
       }
     } catch (error) {
-      console.error('Failed to fetch materials');
+      // Error fetching materials
     }
   };
 
