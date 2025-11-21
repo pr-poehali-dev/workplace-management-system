@@ -9,8 +9,7 @@ import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
-
-const API_URL = 'BACKEND_SECTIONS_URL';
+import { getApiUrl } from '@/utils/updateApiUrls';
 
 interface Category {
   id: number;
@@ -44,7 +43,7 @@ export default function CategoriesPage({ user }: { user: User }) {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_URL}/categories`);
+      const response = await fetch(`${getApiUrl('SECTIONS')}/categories`);
       if (response.ok) {
         const data = await response.json();
         setCategories(data);

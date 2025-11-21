@@ -9,8 +9,7 @@ import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
-
-const API_URL = 'BACKEND_MATERIALS_URL';
+import { getApiUrl } from '@/utils/updateApiUrls';
 
 interface Material {
   id: number;

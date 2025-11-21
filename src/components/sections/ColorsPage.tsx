@@ -8,6 +8,7 @@ import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
+import { getApiUrl } from '@/utils/updateApiUrls';
 
 interface ColorItem {
   id: string;
@@ -15,8 +16,6 @@ interface ColorItem {
   hex: string;
   usage: number;
 }
-
-const API_URL = 'BACKEND_COLORS_URL';
 
 export default function ColorsPage({ user }: { user: User }) {
   const [colors, setColors] = useState<ColorItem[]>([]);

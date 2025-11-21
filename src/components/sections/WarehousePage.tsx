@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
+import { getBackendUrl } from '@/utils/updateApiUrls';
 
 interface WarehouseItem {
   id: string;
@@ -14,8 +15,6 @@ interface WarehouseItem {
   quantity: number;
   unit: string;
 }
-
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
 
 export default function WarehousePage({ user }: { user: User }) {
   const [items, setItems] = useState<WarehouseItem[]>([]);
@@ -28,7 +27,7 @@ export default function WarehousePage({ user }: { user: User }) {
 
   const fetchWarehouse = async () => {
     try {
-      const response = await fetch(`${API_URL}/warehouse`);
+      const response = await fetch(`${getBackendUrl('warehouse')}/warehouse`);
       if (response.ok) {
         const data = await response.json();
         setItems(data.map((item: any) => ({

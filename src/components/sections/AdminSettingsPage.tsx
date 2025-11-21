@@ -109,7 +109,7 @@ export default function AdminSettingsPage() {
     }
 
     const savedCreds = localStorage.getItem('admin_credentials');
-    const currentCreds = savedCreds ? JSON.parse(savedCreds) : { username: 'adminik', password: 'admin' };
+    const currentCreds = savedCreds ? JSON.parse(savedCreds) : { username: 'admin', password: 'admin123' };
 
     if (currentPassword !== currentCreds.password) {
       toast({

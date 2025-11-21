@@ -17,8 +17,7 @@ import {
 import CuttingTable from './cutting/CuttingTable';
 import CuttingOptimizationReport from './cutting/CuttingOptimizationReport';
 import CuttingProjectManager from './cutting/CuttingProjectManager';
-
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+import { getBackendUrl } from '@/utils/updateApiUrls';
 
 interface CuttingProject {
   id: number;
@@ -65,7 +64,7 @@ export default function CuttingPage({ user }: { user: User }) {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch(`${API_URL}/cutting-projects`);
+      const response = await fetch(`${getBackendUrl('cutting')}/cutting-projects`);
       if (response.ok) {
         const data = await response.json();
         setProjects(data);
@@ -146,7 +145,7 @@ export default function CuttingPage({ user }: { user: User }) {
     if (!confirm('Удалить проект?')) return;
 
     try {
-      const response = await fetch(`${API_URL}/cutting-projects?id=${id}`, {
+      const response = await fetch(`${getBackendUrl('cutting')}/cutting-projects?id=${id}`, {
         method: 'DELETE',
       });
 

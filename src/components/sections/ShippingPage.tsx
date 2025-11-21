@@ -10,8 +10,7 @@ import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
-
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+import { getBackendUrl } from '@/utils/updateApiUrls';
 
 interface Shipment {
   id: number;
@@ -54,7 +53,7 @@ export default function ShippingPage({ user }: { user: User }) {
 
   const fetchShipments = async () => {
     try {
-      const response = await fetch(`${API_URL}/shipments`);
+      const response = await fetch(`${getBackendUrl('shipments')}/shipments`);
       if (response.ok) {
         const data = await response.json();
         setShipments(data);
@@ -70,7 +69,7 @@ export default function ShippingPage({ user }: { user: User }) {
 
   const fetchMaterials = async () => {
     try {
-      const response = await fetch(`${API_URL}/materials`);
+      const response = await fetch(`${getBackendUrl('shipments')}/materials`);
       if (response.ok) {
         const data = await response.json();
         setMaterials(data);
@@ -82,7 +81,7 @@ export default function ShippingPage({ user }: { user: User }) {
 
   const fetchColors = async () => {
     try {
-      const response = await fetch(`${API_URL}/colors`);
+      const response = await fetch(`${getBackendUrl('shipments')}/colors`);
       if (response.ok) {
         const data = await response.json();
         setColors(data);
@@ -103,7 +102,7 @@ export default function ShippingPage({ user }: { user: User }) {
     }
 
     try {
-      const response = await fetch(`${API_URL}/shipments`, {
+      const response = await fetch(`${getBackendUrl('shipments')}/shipments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,7 +156,7 @@ export default function ShippingPage({ user }: { user: User }) {
 
   const handleUpdateField = async (id: number, field: string, value: string) => {
     try {
-      const response = await fetch(`${API_URL}/shipments`, {
+      const response = await fetch(`${getBackendUrl('shipments')}/shipments`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, [field]: value }),
@@ -183,7 +182,7 @@ export default function ShippingPage({ user }: { user: User }) {
     if (!confirm('Удалить отправку? Материал вернется на склад.')) return;
 
     try {
-      const response = await fetch(`${API_URL}/shipments?id=${id}`, {
+      const response = await fetch(`${getBackendUrl('shipments')}/shipments?id=${id}`, {
         method: 'DELETE',
       });
 

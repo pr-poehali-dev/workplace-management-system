@@ -23,7 +23,7 @@ interface Order {
   createdAt: Date;
 }
 
-const API_URL = 'BACKEND_ORDERS_URL';
+import { getApiUrl } from '@/utils/updateApiUrls';
 
 export default function OrdersPage({ user }: { user: User }) {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -57,7 +57,7 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const fetchMaterials = async () => {
     try {
-      const response = await fetch(`${API_URL}/materials`);
+      const response = await fetch(`${getApiUrl('MATERIALS')}/materials`);
       if (response.ok) {
         const data = await response.json();
         setMaterials(data);
@@ -69,7 +69,7 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const fetchColors = async () => {
     try {
-      const response = await fetch(`${API_URL}/colors`);
+      const response = await fetch(`${getApiUrl('COLORS')}/colors`);
       if (response.ok) {
         const data = await response.json();
         setColors(data);
@@ -81,7 +81,7 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch(`${API_URL}/orders`);
+      const response = await fetch(`${getApiUrl('ORDERS')}/orders`);
       if (response.ok) {
         const data = await response.json();
         setOrders(data.map((o: any) => ({
@@ -126,7 +126,7 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const handleUpdateCompleted = async (orderId: string, completed: number) => {
     try {
-      const response = await fetch(`${API_URL}/orders`, {
+      const response = await fetch(`${getApiUrl('ORDERS')}/orders`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: orderId, completed }),
@@ -150,7 +150,7 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const handleDelete = async (orderId: string) => {
     try {
-      const response = await fetch(`${API_URL}/orders?id=${orderId}`, {
+      const response = await fetch(`${getApiUrl('ORDERS')}/orders?id=${orderId}`, {
         method: 'DELETE',
       });
       
@@ -181,7 +181,7 @@ export default function OrdersPage({ user }: { user: User }) {
     }
 
     try {
-      const response = await fetch(`${API_URL}/orders`, {
+      const response = await fetch(`${getApiUrl('ORDERS')}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

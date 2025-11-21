@@ -10,8 +10,7 @@ import Icon from '@/components/ui/icon';
 import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
-
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+import { getBackendUrl } from '@/utils/updateApiUrls';
 
 interface DefectItem {
   id: number;
@@ -49,7 +48,7 @@ export default function DefectsPage({ user }: { user: User }) {
 
   const fetchDefects = async () => {
     try {
-      const response = await fetch(`${API_URL}/defects`);
+      const response = await fetch(`${getBackendUrl('defects')}/defects`);
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -65,7 +64,7 @@ export default function DefectsPage({ user }: { user: User }) {
 
   const fetchMaterials = async () => {
     try {
-      const response = await fetch(`${API_URL}/materials`);
+      const response = await fetch(`${getBackendUrl('materials')}/materials`);
       if (response.ok) {
         const data = await response.json();
         setMaterials(data);
@@ -77,7 +76,7 @@ export default function DefectsPage({ user }: { user: User }) {
 
   const fetchColors = async () => {
     try {
-      const response = await fetch(`${API_URL}/colors`);
+      const response = await fetch(`${getBackendUrl('colors')}/colors`);
       if (response.ok) {
         const data = await response.json();
         setColors(data);
@@ -89,7 +88,7 @@ export default function DefectsPage({ user }: { user: User }) {
 
   const fetchWarehouse = async () => {
     try {
-      const response = await fetch(`${API_URL}/warehouse`);
+      const response = await fetch(`${getBackendUrl('warehouse')}/warehouse`);
       if (response.ok) {
         const data = await response.json();
         setWarehouse(data);

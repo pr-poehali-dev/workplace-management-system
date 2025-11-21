@@ -6,13 +6,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
-import { AUTH_URL } from '@/utils/updateApiUrls';
+import { getApiUrl } from '@/utils/updateApiUrls';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
 }
-
-const API_URL = AUTH_URL;
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
@@ -26,7 +24,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     
     try {
       const savedCreds = localStorage.getItem('admin_credentials');
-      const adminCreds = savedCreds ? JSON.parse(savedCreds) : { username: 'adminik', password: 'admin' };
+      const adminCreds = savedCreds ? JSON.parse(savedCreds) : { username: 'admin', password: 'admin123' };
 
       if (username === adminCreds.username && password === adminCreds.password) {
         onLogin({
@@ -43,7 +41,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return;
       }
 
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${getApiUrl('AUTH')}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +52,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       if (response.ok) {
         const user = await response.json();
         
-        if (user.username === 'adminik' || user.role === 'admin') {
+        if (user.username === 'admin' || user.role === 'admin') {
           toast({
             title: 'Доступ запрещен',
             description: 'Используйте локальные учетные данные администратора',
