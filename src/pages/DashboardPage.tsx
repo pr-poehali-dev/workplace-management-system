@@ -14,13 +14,14 @@ import CategoriesPage from '@/components/sections/CategoriesPage';
 import ColorsPage from '@/components/sections/ColorsPage';
 import SandwichPage from '@/components/sections/SandwichPage';
 import CuttingPage from '@/components/sections/CuttingPage';
+import ServerConfigPage from '@/components/sections/ServerConfigPage';
 
 interface DashboardPageProps {
   user: User;
   onLogout: () => void;
 }
 
-type Section = 'dashboard' | 'orders' | 'incoming' | 'warehouse' | 'shipping' | 'personnel' | 'defects' | 'materials' | 'categories' | 'colors' | 'sandwich' | 'cutting';
+type Section = 'dashboard' | 'orders' | 'incoming' | 'warehouse' | 'shipping' | 'personnel' | 'defects' | 'materials' | 'categories' | 'colors' | 'sandwich' | 'cutting' | 'server-config';
 
 const MENU_ITEMS = [
   { id: 'orders', label: 'Заявки', icon: 'ClipboardList', color: 'bg-red-500' },
@@ -34,6 +35,7 @@ const MENU_ITEMS = [
   { id: 'colors', label: 'Цвет', icon: 'Palette', color: 'bg-pink-500' },
   { id: 'sandwich', label: 'Сендвич', icon: 'Box', color: 'bg-amber-500' },
   { id: 'cutting', label: 'Раскрой', icon: 'Scissors', color: 'bg-rose-500' },
+  { id: 'server-config', label: 'Настройки сервера', icon: 'Settings', color: 'bg-slate-500', adminOnly: true },
 ];
 
 export default function DashboardPage({ user, onLogout }: DashboardPageProps) {
@@ -63,10 +65,12 @@ export default function DashboardPage({ user, onLogout }: DashboardPageProps) {
         return <SandwichPage user={user} />;
       case 'cutting':
         return <CuttingPage user={user} />;
+      case 'server-config':
+        return <ServerConfigPage />;
       default:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {MENU_ITEMS.map((item) => (
+            {MENU_ITEMS.filter((item: any) => !item.adminOnly || user.role === 'admin').map((item) => (
               <Card
                 key={item.id}
                 className="cursor-pointer hover-scale transition-all hover:shadow-lg"
