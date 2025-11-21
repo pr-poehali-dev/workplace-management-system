@@ -45,7 +45,7 @@ const DEFAULT_SHEETS: Sheet[] = [
 
 export default function CuttingPage({ user }: { user: User }) {
   const [rows, setRows] = useState<CuttingRow[]>(
-    Array(100).fill(null).map(() =>
+    Array(1000).fill(null).map(() =>
       COLUMNS.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
     )
   );
@@ -171,7 +171,7 @@ export default function CuttingPage({ user }: { user: User }) {
 
   const handleNewProject = () => {
     setRows(
-      Array(100).fill(null).map(() =>
+      Array(1000).fill(null).map(() =>
         COLUMNS.reduce((acc, col) => ({ ...acc, [col]: '' }), {})
       )
     );
@@ -377,16 +377,22 @@ export default function CuttingPage({ user }: { user: User }) {
       {detailsData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Уникальные детали</CardTitle>
+            <CardTitle>Список уникальных размеров ({detailsData.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {detailsData.map((item, idx) => (
-                <div key={idx} className="p-2 bg-slate-50 rounded text-sm">
-                  <p className="font-semibold">{item.name}</p>
-                  <p className="text-muted-foreground">Кол-во: {item.quantity}</p>
-                </div>
-              ))}
+            <div className="space-y-2">
+              {detailsData
+                .sort((a, b) => b.quantity - a.quantity)
+                .map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded hover:bg-slate-100">
+                    <div className="flex-1">
+                      <p className="font-semibold text-lg">{item.name}</p>
+                    </div>
+                    <Badge variant="secondary" className="text-base px-4 py-1">
+                      {item.quantity} шт
+                    </Badge>
+                  </div>
+                ))}
             </div>
           </CardContent>
         </Card>
