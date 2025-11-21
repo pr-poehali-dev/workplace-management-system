@@ -10,7 +10,7 @@ import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
 
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+const API_URL = 'BACKEND_MATERIALS_URL';
 
 interface Material {
   id: number;
@@ -32,52 +32,25 @@ export default function MaterialsPage({ user }: { user: User }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchMaterials();
-    fetchCategories();
-    fetchColors();
+    setCategories([
+      { id: 1, name: 'Ламинация' },
+      { id: 2, name: 'Москитки' },
+      { id: 3, name: 'Жесть' },
+      { id: 4, name: 'Другое' },
+      { id: 5, name: 'Сендвич' },
+      { id: 6, name: 'Расходники' },
+    ]);
+    setColors([
+      { id: 1, name: 'Белый' },
+      { id: 2, name: 'Черный' },
+      { id: 3, name: 'Коричневый' },
+    ]);
+    setMaterials([]);
   }, []);
 
-  const fetchMaterials = async () => {
-    try {
-      const response = await fetch(`${API_URL}/materials`);
-      if (response.ok) {
-        const data = await response.json();
-        setMaterials(data);
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось загрузить материалы',
-        variant: 'destructive',
-      });
-    }
-  };
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`${API_URL}/categories`);
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories');
-    }
-  };
 
-  const fetchColors = async () => {
-    try {
-      const response = await fetch(`${API_URL}/colors`);
-      if (response.ok) {
-        const data = await response.json();
-        setColors(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch colors');
-    }
-  };
-
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!formData.name) {
       toast({
         title: 'Ошибка',
@@ -87,55 +60,33 @@ export default function MaterialsPage({ user }: { user: User }) {
       return;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/materials`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          category_id: formData.category_id ? parseInt(formData.category_id) : null,
-          color_id: formData.color_id ? parseInt(formData.color_id) : null,
-        }),
-      });
+    const category = categories.find(c => c.id === parseInt(formData.category_id));
+    const color = colors.find(c => c.id === parseInt(formData.color_id));
 
-      if (response.ok) {
-        await fetchMaterials();
-        setShowForm(false);
-        setFormData({ name: '', category_id: '', color_id: '' });
-        toast({
-          title: 'Создано',
-          description: 'Материал успешно добавлен',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось создать материал',
-        variant: 'destructive',
-      });
-    }
+    const newMaterial = {
+      id: Date.now(),
+      name: formData.name,
+      category_name: category?.name,
+      color_name: color?.name,
+    };
+
+    setMaterials([...materials, newMaterial]);
+    setShowForm(false);
+    setFormData({ name: '', category_id: '', color_id: '' });
+    toast({
+      title: 'Создано',
+      description: 'Материал добавлен',
+    });
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      const response = await fetch(`${API_URL}/materials?id=${id}`, {
-        method: 'DELETE',
-      });
+  const handleDelete = (id: number) => {
+    if (!confirm('Удалить материал?')) return;
 
-      if (response.ok) {
-        await fetchMaterials();
-        toast({
-          title: 'Удалено',
-          description: 'Материал удален',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось удалить материал',
-        variant: 'destructive',
-      });
-    }
+    setMaterials(materials.filter(m => m.id !== id));
+    toast({
+      title: 'Удалено',
+      description: 'Материал удален',
+    });
   };
 
   return (

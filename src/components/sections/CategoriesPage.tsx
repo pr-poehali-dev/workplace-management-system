@@ -10,7 +10,7 @@ import { User } from '@/App';
 import { useToast } from '@/hooks/use-toast';
 import { exportToExcel, printTable } from '@/utils/exportUtils';
 
-const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+const API_URL = 'BACKEND_SECTIONS_URL';
 
 interface Category {
   id: number;
@@ -32,7 +32,14 @@ export default function CategoriesPage({ user }: { user: User }) {
   const canEdit = user.role === 'admin' || user.role === 'manager';
 
   useEffect(() => {
-    fetchCategories();
+    setCategories([
+      { id: 1, name: 'Ламинация', description: '', material_count: 0 },
+      { id: 2, name: 'Москитки', description: '', material_count: 0 },
+      { id: 3, name: 'Жесть', description: '', material_count: 0 },
+      { id: 4, name: 'Другое', description: '', material_count: 0 },
+      { id: 5, name: 'Сендвич', description: '', material_count: 0 },
+      { id: 6, name: 'Расходники', description: '', material_count: 0 },
+    ]);
   }, []);
 
   const fetchCategories = async () => {
@@ -51,107 +58,70 @@ export default function CategoriesPage({ user }: { user: User }) {
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!formData.name) {
       toast({
         title: 'Ошибка',
-        description: 'Заполните название категории',
+        description: 'Заполните название раздела',
         variant: 'destructive',
       });
       return;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/categories`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+    const newCategory = {
+      id: Date.now(),
+      name: formData.name,
+      description: formData.description,
+      material_count: 0,
+    };
 
-      if (response.ok) {
-        await fetchCategories();
-        setShowForm(false);
-        setFormData({ name: '', description: '' });
-        toast({
-          title: 'Создано',
-          description: 'Категория успешно создана',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось создать категорию',
-        variant: 'destructive',
-      });
-    }
+    setCategories([...categories, newCategory]);
+    setShowForm(false);
+    setFormData({ name: '', description: '' });
+    toast({
+      title: 'Создано',
+      description: 'Раздел успешно создан',
+    });
   };
 
   const handleEdit = (category: Category) => {
     setEditingId(category.id);
   };
 
-  const handleUpdateField = async (id: number, field: string, value: string) => {
-    try {
-      const response = await fetch(`${API_URL}/categories`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, [field]: value }),
-      });
-
-      if (response.ok) {
-        await fetchCategories();
-        setEditingId(null);
-        toast({
-          title: 'Обновлено',
-          description: 'Категория обновлена',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось обновить категорию',
-        variant: 'destructive',
-      });
-    }
+  const handleUpdateField = (id: number, field: string, value: string) => {
+    setCategories(categories.map(cat => 
+      cat.id === id ? { ...cat, [field]: value } : cat
+    ));
+    setEditingId(null);
+    toast({
+      title: 'Обновлено',
+      description: 'Раздел обновлен',
+    });
   };
 
-  const handleDelete = async (id: number, materialCount: number) => {
+  const handleDelete = (id: number, materialCount: number) => {
     if (materialCount > 0) {
       toast({
         title: 'Ошибка',
-        description: 'Нельзя удалить категорию с материалами',
+        description: 'Нельзя удалить раздел с материалами',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!confirm('Удалить категорию?')) return;
+    if (!confirm('Удалить раздел?')) return;
 
-    try {
-      const response = await fetch(`${API_URL}/categories?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        await fetchCategories();
-        toast({
-          title: 'Удалено',
-          description: 'Категория удалена',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось удалить категорию',
-        variant: 'destructive',
-      });
-    }
+    setCategories(categories.filter(cat => cat.id !== id));
+    toast({
+      title: 'Удалено',
+      description: 'Раздел удален',
+    });
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Категории материалов</h2>
+        <h2 className="text-3xl font-bold">Разделы</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -162,8 +132,8 @@ export default function CategoriesPage({ user }: { user: User }) {
                   Описание: c.description || '-',
                   'Материалов': c.material_count,
                 })),
-                'Категории',
-                'Категории'
+                'Разделы',
+                'Разделы'
               )
             }
           >
@@ -177,7 +147,7 @@ export default function CategoriesPage({ user }: { user: User }) {
           {canEdit && (
             <Button onClick={() => setShowForm(!showForm)}>
               <Icon name="Plus" size={20} className="mr-2" />
-              Добавить категорию
+Добавить раздел
             </Button>
           )}
         </div>
@@ -186,7 +156,7 @@ export default function CategoriesPage({ user }: { user: User }) {
       {showForm && (
         <Card className="animate-fade-in">
           <CardHeader>
-            <CardTitle>Новая категория</CardTitle>
+            <CardTitle>Новый раздел</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4">
@@ -201,7 +171,7 @@ export default function CategoriesPage({ user }: { user: User }) {
               <div className="space-y-2">
                 <Label>Описание</Label>
                 <Textarea
-                  placeholder="Описание категории материалов"
+                  placeholder="Описание раздела"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
