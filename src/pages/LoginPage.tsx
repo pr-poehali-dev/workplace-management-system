@@ -24,6 +24,24 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setLoading(true);
     
     try {
+      const savedCreds = localStorage.getItem('admin_credentials');
+      const adminCreds = savedCreds ? JSON.parse(savedCreds) : { username: 'adminik', password: 'admin' };
+
+      if (username === adminCreds.username && password === adminCreds.password) {
+        onLogin({
+          id: '0',
+          username: adminCreds.username,
+          fullName: 'Администратор',
+          role: 'admin',
+        });
+        toast({
+          title: 'Вход выполнен',
+          description: 'Добро пожаловать, Администратор!',
+        });
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: {
@@ -34,6 +52,17 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       
       if (response.ok) {
         const user = await response.json();
+        
+        if (user.username === 'adminik' || user.role === 'admin') {
+          toast({
+            title: 'Доступ запрещен',
+            description: 'Используйте локальные учетные данные администратора',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
         onLogin({
           id: user.id.toString(),
           username: user.username,
