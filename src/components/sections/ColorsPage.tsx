@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
+import { useToast } from '@/hooks/use-toast';
 
 interface ColorItem {
   id: string;
@@ -12,14 +13,36 @@ interface ColorItem {
   usage: number;
 }
 
+const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+
 export default function ColorsPage({ user }: { user: User }) {
-  const [colors] = useState<ColorItem[]>([
-    { id: '1', name: 'Белый', hex: '#FFFFFF', usage: 150 },
-    { id: '2', name: 'Черный', hex: '#000000', usage: 80 },
-    { id: '3', name: 'Хром', hex: '#C0C0C0', usage: 65 },
-    { id: '4', name: 'Коричневый', hex: '#8B4513', usage: 45 },
-    { id: '5', name: 'Серый', hex: '#808080', usage: 30 },
-  ].sort((a, b) => b.usage - a.usage));
+  const [colors, setColors] = useState<ColorItem[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchColors();
+  }, []);
+
+  const fetchColors = async () => {
+    try {
+      const response = await fetch(`${API_URL}/colors`);
+      if (response.ok) {
+        const data = await response.json();
+        setColors(data.map((c: any) => ({
+          id: c.id.toString(),
+          name: c.name,
+          hex: c.hex_code || '#808080',
+          usage: c.usage_count || 0,
+        })));
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить цвета',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <div className="space-y-4">

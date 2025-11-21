@@ -11,34 +11,54 @@ interface LoginPageProps {
   onLogin: (user: User) => void;
 }
 
-const USERS = [
-  { id: '1', username: 'admin', password: 'adminik', fullName: 'Администратор', role: 'admin' as const },
-  { id: '2', username: 'manager1', password: 'manager', fullName: 'Начальник Иван', role: 'manager' as const },
-  { id: '3', username: 'employee1', password: 'employee', fullName: 'Сотрудник Петр', role: 'employee' as const },
-];
+const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
-    const user = USERS.find(u => u.username === username && u.password === password);
-    
-    if (user) {
-      onLogin(user);
-      toast({
-        title: 'Вход выполнен',
-        description: `Добро пожаловать, ${user.fullName}!`,
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       });
-    } else {
+      
+      if (response.ok) {
+        const user = await response.json();
+        onLogin({
+          id: user.id.toString(),
+          username: user.username,
+          fullName: user.full_name,
+          role: user.role,
+        });
+        toast({
+          title: 'Вход выполнен',
+          description: `Добро пожаловать, ${user.full_name}!`,
+        });
+      } else {
+        toast({
+          title: 'Ошибка входа',
+          description: 'Неверный логин или пароль',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
       toast({
-        title: 'Ошибка входа',
-        description: 'Неверный логин или пароль',
+        title: 'Ошибка',
+        description: 'Не удалось подключиться к серверу',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,9 +96,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" size="lg">
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
               <Icon name="LogIn" size={20} className="mr-2" />
-              Войти
+              {loading ? 'Вход...' : 'Войти'}
             </Button>
           </form>
         </CardContent>

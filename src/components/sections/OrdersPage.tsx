@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,17 +22,49 @@ interface Order {
   createdAt: Date;
 }
 
+const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+
 export default function OrdersPage({ user }: { user: User }) {
-  const [orders, setOrders] = useState<Order[]>([
-    { id: '1', material: 'Профиль ПВХ', size: '6м', color: 'Белый', quantity: 100, unit: 'шт', status: 'new', completed: 0, createdBy: 'Администратор', createdAt: new Date() },
-    { id: '2', material: 'Стеклопакет', size: '1500x1000', color: 'Прозрачный', quantity: 50, unit: 'шт', status: 'in_progress', completed: 30, createdBy: 'Начальник Иван', createdAt: new Date() },
-    { id: '3', material: 'Фурнитура', color: 'Хром', quantity: 200, unit: 'шт', status: 'completed', completed: 200, createdBy: 'Начальник Иван', createdAt: new Date() },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const { toast } = useToast();
 
   const canEdit = user.role === 'admin' || user.role === 'manager';
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await fetch(`${API_URL}/orders`);
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(data.map((o: any) => ({
+          id: o.id.toString(),
+          material: o.material_name || 'Неизвестно',
+          size: o.size,
+          color: o.color_name,
+          quantity: parseFloat(o.quantity),
+          unit: o.unit,
+          status: o.status,
+          completed: parseFloat(o.completed || 0),
+          createdBy: o.created_by_name || 'Система',
+          createdAt: new Date(o.created_at),
+        })));
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить заявки',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
@@ -50,27 +82,28 @@ export default function OrdersPage({ user }: { user: User }) {
     }
   };
 
-  const handleUpdateCompleted = (orderId: string, completed: number) => {
-    setOrders(orders.map(order => {
-      if (order.id === orderId) {
-        const newCompleted = completed;
-        let newStatus = order.status;
-        
-        if (newCompleted > 0 && newCompleted < order.quantity) {
-          newStatus = 'in_progress';
-        } else if (newCompleted >= order.quantity) {
-          newStatus = 'completed';
-        }
-        
-        return { ...order, completed: newCompleted, status: newStatus };
+  const handleUpdateCompleted = async (orderId: string, completed: number) => {
+    try {
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderId, completed }),
+      });
+      
+      if (response.ok) {
+        await fetchOrders();
+        toast({
+          title: 'Обновлено',
+          description: 'Количество готовой продукции обновлено',
+        });
       }
-      return order;
-    }));
-    
-    toast({
-      title: 'Обновлено',
-      description: 'Количество готовой продукции обновлено',
-    });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить данные',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDelete = (orderId: string) => {

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { User } from '@/App';
+import { useToast } from '@/hooks/use-toast';
 
 interface WarehouseItem {
   id: string;
@@ -13,13 +14,40 @@ interface WarehouseItem {
   unit: string;
 }
 
+const API_URL = 'https://functions.poehali.dev/39ca8b8c-d1d9-44d3-ad59-89c619b3b821';
+
 export default function WarehousePage({ user }: { user: User }) {
-  const [items, setItems] = useState<WarehouseItem[]>([
-    { id: '1', name: 'Профиль ПВХ', color: 'Белый', quantity: 500, unit: 'шт' },
-    { id: '2', name: 'Стеклопакет', color: 'Прозрачный', quantity: 150, unit: 'шт' },
-    { id: '3', name: 'Фурнитура', color: 'Хром', quantity: 800, unit: 'шт' },
-    { id: '4', name: 'Уплотнитель', color: 'Черный', quantity: 200, unit: 'м' },
-  ]);
+  const [items, setItems] = useState<WarehouseItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchWarehouse();
+  }, []);
+
+  const fetchWarehouse = async () => {
+    try {
+      const response = await fetch(`${API_URL}/warehouse`);
+      if (response.ok) {
+        const data = await response.json();
+        setItems(data.map((item: any) => ({
+          id: item.id.toString(),
+          name: item.material_name || 'Неизвестно',
+          color: item.color_name || '-',
+          quantity: parseFloat(item.quantity),
+          unit: item.unit,
+        })));
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить данные склада',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
