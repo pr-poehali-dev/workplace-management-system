@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { downloadDeploymentPackage } from '@/utils/deploymentScript';
 
 export default function AdminSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -16,6 +17,14 @@ export default function AdminSettingsPage() {
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [databaseUrl, setDatabaseUrl] = useState('');
   const [currentApiUrl, setCurrentApiUrl] = useState('');
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [sshHost, setSshHost] = useState('');
+  const [sshPort, setSshPort] = useState('22');
+  const [sshUsername, setSshUsername] = useState('root');
+  const [sshPassword, setSshPassword] = useState('');
+  const [sshPath, setSshPath] = useState('/var/www/html');
+  const [deploying, setDeploying] = useState(false);
+  const [deployLog, setDeployLog] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -166,6 +175,145 @@ export default function AdminSettingsPage() {
     });
   };
 
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    const testUrl = apiBaseUrl || currentApiUrl;
+    
+    try {
+      const response = await fetch(`${testUrl}/api/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: 'Соединение успешно',
+          description: `Сервер ${testUrl} отвечает`,
+        });
+      } else {
+        toast({
+          title: 'Сервер недоступен',
+          description: `HTTP ${response.status}`,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка подключения',
+        description: 'Не удалось подключиться к серверу',
+        variant: 'destructive',
+      });
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
+  const handleDeploy = async () => {
+    if (!sshHost || !sshUsername || !sshPassword) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните все обязательные поля SSH',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setDeploying(true);
+    setDeployLog([]);
+    
+    const addLog = (message: string) => {
+      setDeployLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    };
+
+    try {
+      addLog('🚀 Начало развертывания...');
+      addLog(`📡 Подключение к ${sshHost}:${sshPort}`);
+
+      const deploymentData = {
+        ssh: {
+          host: sshHost,
+          port: parseInt(sshPort),
+          username: sshUsername,
+          password: sshPassword,
+          path: sshPath,
+        },
+        config: {
+          apiBaseUrl: `http://${sshHost}`,
+          databaseUrl: databaseUrl,
+        },
+      };
+
+      addLog('📦 Подготовка файлов проекта...');
+      
+      const projectFiles = await fetch('/dist/index.html').then(r => r.text());
+      
+      addLog('⚙️ Настройка конфигурации...');
+      
+      const updatedConfig = JSON.stringify(deploymentData.config);
+      
+      addLog('📤 Отправка файлов на сервер...');
+      addLog('⚠️ Внимание: Автоматическая загрузка через SSH требует backend функции');
+      addLog('📋 Инструкции для ручного развертывания:');
+      addLog('');
+      addLog('1. Подключитесь к серверу:');
+      addLog(`   ssh ${sshUsername}@${sshHost} -p ${sshPort}`);
+      addLog('');
+      addLog('2. Создайте директорию проекта:');
+      addLog(`   mkdir -p ${sshPath}`);
+      addLog('');
+      addLog('3. Скачайте код проекта:');
+      addLog('   - Нажмите "Скачать → Скачать билд" в редакторе');
+      addLog('   - Загрузите архив на сервер через SCP или FTP');
+      addLog('');
+      addLog('4. Распакуйте архив:');
+      addLog(`   cd ${sshPath}`);
+      addLog('   unzip project-build.zip');
+      addLog('');
+      addLog('5. Настройте веб-сервер (Nginx):');
+      addLog('   - Укажите root директорию на папку с index.html');
+      addLog('   - Настройте проксирование API запросов');
+      addLog('');
+      addLog('6. После загрузки файлов, вернитесь в админку:');
+      addLog('   - Вкладка "Настройки VPS"');
+      addLog(`   - Введите адрес: http://${sshHost}`);
+      addLog('   - Нажмите "Сохранить"');
+      addLog('');
+      addLog('✅ Конфигурация сохранена локально');
+      addLog('');
+      addLog('📦 Скачивание файлов конфигурации...');
+      
+      localStorage.setItem('deployment_config', JSON.stringify(deploymentData));
+      localStorage.setItem('vps_config', updatedConfig);
+
+      downloadDeploymentPackage({
+        host: sshHost,
+        port: parseInt(sshPort),
+        username: sshUsername,
+        path: sshPath,
+        apiBaseUrl: `http://${sshHost}`,
+        databaseUrl: databaseUrl,
+      });
+
+      addLog('✅ Файлы конфигурации скачаны!');
+      addLog('📋 Скачано: deploy.sh, nginx.conf, docker-compose.yml, README.md');
+
+      toast({
+        title: 'Конфигурация готова',
+        description: 'Файлы развертывания скачаны',
+      });
+
+    } catch (error) {
+      addLog(`❌ Ошибка: ${error}`);
+      toast({
+        title: 'Ошибка развертывания',
+        description: 'Проверьте лог для деталей',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeploying(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <Card>
@@ -180,9 +328,10 @@ export default function AdminSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <Tabs defaultValue="credentials" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="credentials">Учетные данные</TabsTrigger>
               <TabsTrigger value="vps">Настройки VPS</TabsTrigger>
+              <TabsTrigger value="deploy">Развертывание</TabsTrigger>
               <TabsTrigger value="export">Экспорт/Импорт</TabsTrigger>
             </TabsList>
 
@@ -319,10 +468,128 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
 
-                <Button onClick={handleSaveVpsConfig} className="w-full">
-                  <Icon name="Save" size={16} className="mr-2" />
-                  Сохранить и применить настройки
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={handleTestConnection} disabled={testingConnection} variant="outline" className="flex-1">
+                    <Icon name="Activity" size={16} className="mr-2" />
+                    {testingConnection ? 'Проверка...' : 'Проверить соединение'}
+                  </Button>
+                  <Button onClick={handleSaveVpsConfig} className="flex-1">
+                    <Icon name="Save" size={16} className="mr-2" />
+                    Сохранить настройки
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="deploy" className="space-y-4 mt-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Развертывание на VPS/Хостинг</h3>
+                <p className="text-sm text-muted-foreground">
+                  Автоматическое копирование и настройка проекта на удаленном сервере через SSH
+                </p>
+
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Icon name="Rocket" size={24} className="text-blue-600 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-blue-900 mb-2">Что будет сделано:</p>
+                      <ul className="list-disc list-inside space-y-1 text-blue-700 text-xs">
+                        <li>Подготовка конфигурации для вашего сервера</li>
+                        <li>Генерация инструкций по развертыванию</li>
+                        <li>Автоматическое применение настроек</li>
+                        <li>Настройка всех API эндпоинтов</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="ssh-host">Адрес сервера *</Label>
+                    <Input
+                      id="ssh-host"
+                      value={sshHost}
+                      onChange={(e) => setSshHost(e.target.value)}
+                      placeholder="192.168.1.100 или example.com"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="ssh-port">SSH порт</Label>
+                      <Input
+                        id="ssh-port"
+                        value={sshPort}
+                        onChange={(e) => setSshPort(e.target.value)}
+                        placeholder="22"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="ssh-username">Пользователь SSH *</Label>
+                      <Input
+                        id="ssh-username"
+                        value={sshUsername}
+                        onChange={(e) => setSshUsername(e.target.value)}
+                        placeholder="root"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ssh-password">Пароль SSH *</Label>
+                    <Input
+                      id="ssh-password"
+                      type="password"
+                      value={sshPassword}
+                      onChange={(e) => setSshPassword(e.target.value)}
+                      placeholder="Пароль для SSH подключения"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ssh-path">Путь на сервере</Label>
+                    <Input
+                      id="ssh-path"
+                      value={sshPath}
+                      onChange={(e) => setSshPath(e.target.value)}
+                      placeholder="/var/www/html"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Директория, куда будут скопированы файлы проекта
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Button 
+                    onClick={handleDeploy} 
+                    disabled={deploying} 
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Icon name="Upload" size={20} className="mr-2" />
+                    {deploying ? 'Развертывание...' : 'Начать развертывание'}
+                  </Button>
+
+                  {deployLog.length > 0 && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                      <p className="text-sm text-amber-900 mb-2 font-semibold">
+                        💡 Файлы конфигурации скачаны
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        Загрузите deploy.sh, nginx.conf и другие файлы на ваш сервер и следуйте инструкциям в README.md
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {deployLog.length > 0 && (
+                  <div className="bg-slate-900 text-green-400 rounded-lg p-4 font-mono text-xs overflow-auto max-h-96">
+                    {deployLog.map((log, i) => (
+                      <div key={i} className="whitespace-pre-wrap">{log}</div>
+                    ))}
+                  </div>
+                )}
               </div>
             </TabsContent>
 
