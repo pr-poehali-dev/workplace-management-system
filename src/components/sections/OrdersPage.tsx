@@ -28,9 +28,9 @@ interface Order {
 }
 
 interface MaterialFormItem {
-  material_id: string;
+  material: string;
   size: string;
-  color_id: string;
+  color: string;
   quantity: string;
   unit: string;
 }
@@ -44,9 +44,9 @@ export default function OrdersPage({ user }: { user: User }) {
   const [materials, setMaterials] = useState<any[]>([]);
   const [colors, setColors] = useState<any[]>([]);
   const [formItems, setFormItems] = useState<MaterialFormItem[]>([{
-    material_id: '',
+    material: '',
     size: '',
-    color_id: '',
+    color: '',
     quantity: '',
     unit: 'шт'
   }]);
@@ -112,9 +112,9 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const addMaterialItem = () => {
     setFormItems([...formItems, {
-      material_id: '',
+      material: '',
       size: '',
-      color_id: '',
+      color: '',
       quantity: '',
       unit: 'шт'
     }]);
@@ -166,7 +166,7 @@ export default function OrdersPage({ user }: { user: User }) {
 
   const handleCreateOrder = () => {
     const validItems = formItems.filter(item => 
-      item.material_id && item.quantity && parseFloat(item.quantity) > 0
+      item.material && item.quantity && parseFloat(item.quantity) > 0
     );
 
     if (validItems.length === 0) {
@@ -178,19 +178,14 @@ export default function OrdersPage({ user }: { user: User }) {
       return;
     }
 
-    const orderItems: OrderItem[] = validItems.map(item => {
-      const material = materials.find(m => m.id.toString() === item.material_id);
-      const color = item.color_id ? colors.find(c => c.id.toString() === item.color_id) : null;
-      
-      return {
-        material: material?.name || 'Неизвестно',
-        size: item.size || undefined,
-        color: color?.name || undefined,
-        quantity: parseFloat(item.quantity),
-        unit: item.unit,
-        completed: 0
-      };
-    });
+    const orderItems: OrderItem[] = validItems.map(item => ({
+      material: item.material,
+      size: item.size || undefined,
+      color: item.color || undefined,
+      quantity: parseFloat(item.quantity),
+      unit: item.unit,
+      completed: 0
+    }));
 
     const newOrder: Order = {
       id: Date.now().toString(),
@@ -203,9 +198,9 @@ export default function OrdersPage({ user }: { user: User }) {
     setOrders([newOrder, ...orders]);
     setShowForm(false);
     setFormItems([{
-      material_id: '',
+      material: '',
       size: '',
-      color_id: '',
+      color: '',
       quantity: '',
       unit: 'шт'
     }]);
@@ -280,19 +275,11 @@ export default function OrdersPage({ user }: { user: User }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Материал *</Label>
-                    <Select 
-                      value={item.material_id} 
-                      onValueChange={(v) => updateFormItem(index, 'material_id', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите материал" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {materials.map((m) => (
-                          <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      value={item.material}
+                      onChange={(e) => updateFormItem(index, 'material', e.target.value)}
+                      placeholder="Например: Панель 3000x600"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -306,20 +293,11 @@ export default function OrdersPage({ user }: { user: User }) {
 
                   <div className="space-y-2">
                     <Label>Цвет</Label>
-                    <Select 
-                      value={item.color_id} 
-                      onValueChange={(v) => updateFormItem(index, 'color_id', v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите цвет" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Без цвета</SelectItem>
-                        {colors.map((c) => (
-                          <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      value={item.color}
+                      onChange={(e) => updateFormItem(index, 'color', e.target.value)}
+                      placeholder="Например: Белый"
+                    />
                   </div>
 
                   <div className="space-y-2">
