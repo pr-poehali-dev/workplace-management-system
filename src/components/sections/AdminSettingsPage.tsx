@@ -14,6 +14,8 @@ export default function AdminSettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [apiBaseUrl, setApiBaseUrl] = useState('');
   const [databaseUrl, setDatabaseUrl] = useState('');
   const [currentApiUrl, setCurrentApiUrl] = useState('');
@@ -341,13 +343,23 @@ export default function AdminSettingsPage() {
             
             <div>
               <Label htmlFor="current-password">Текущий пароль</Label>
-              <Input
-                id="current-password"
-                type={showPasswords ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Введите текущий пароль"
-              />
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Введите текущий пароль"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <Icon name={showCurrentPassword ? 'EyeOff' : 'Eye'} size={18} />
+                </button>
+              </div>
             </div>
 
             <div>
@@ -363,37 +375,44 @@ export default function AdminSettingsPage() {
 
             <div>
               <Label htmlFor="new-password">Новый пароль (опционально)</Label>
-              <Input
-                id="new-password"
-                type={showPasswords ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Оставьте пустым, чтобы не менять"
-              />
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Оставьте пустым, чтобы не менять"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <Icon name={showNewPassword ? 'EyeOff' : 'Eye'} size={18} />
+                </button>
+              </div>
             </div>
 
             <div>
               <Label htmlFor="confirm-password">Подтвердите новый пароль</Label>
-              <Input
-                id="confirm-password"
-                type={showPasswords ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Повторите новый пароль"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="show-passwords"
-                checked={showPasswords}
-                onChange={(e) => setShowPasswords(e.target.checked)}
-                className="w-4 h-4"
-              />
-              <Label htmlFor="show-passwords" className="cursor-pointer">
-                Показать пароли
-              </Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Повторите новый пароль"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <Icon name={showNewPassword ? 'EyeOff' : 'Eye'} size={18} />
+                </button>
+              </div>
             </div>
 
             <Button onClick={handleChangeCredentials} className="w-full">

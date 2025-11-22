@@ -186,7 +186,40 @@ export default function CuttingPage({ user }: { user: User }) {
     const newRows = [...rows];
     newRows[rowIndex][column] = value;
     setRows(newRows);
+    
+    if (currentProjectId && saveFormData.name) {
+      debouncedSave(newRows);
+    }
   };
+
+  const debouncedSave = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (rowsData: CuttingRow[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        try {
+          const response = await fetch(`${getBackendUrl('cutting')}/cutting-projects`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: currentProjectId,
+              name: saveFormData.name,
+              description: saveFormData.description,
+              sheets_data: rowsData,
+              optimization_data: optimization,
+              created_by: parseInt(user.id),
+            }),
+          });
+
+          if (response.ok) {
+            console.log('Автосохранение выполнено');
+          }
+        } catch (error) {
+          console.error('Ошибка автосохранения:', error);
+        }
+      }, 1500);
+    };
+  }, [currentProjectId, saveFormData, optimization, user.id]);
 
   const detailsData = useMemo(() => {
     const detailsColumns = COLUMNS.slice(3);
