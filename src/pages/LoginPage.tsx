@@ -41,6 +41,33 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         return;
       }
 
+      const employeesData = localStorage.getItem('employees_data');
+      if (employeesData) {
+        try {
+          const employees = JSON.parse(employeesData);
+          const employee = employees.find((e: any) => 
+            e.username === username && e.password === password
+          );
+
+          if (employee) {
+            onLogin({
+              id: employee.id,
+              username: employee.username,
+              fullName: employee.fullName,
+              role: employee.role,
+            });
+            toast({
+              title: 'Вход выполнен',
+              description: `Добро пожаловать, ${employee.fullName}!`,
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.error('Ошибка проверки локальных сотрудников');
+        }
+      }
+
       const response = await fetch(`${getApiUrl('AUTH')}/login`, {
         method: 'POST',
         headers: {
@@ -51,16 +78,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       
       if (response.ok) {
         const user = await response.json();
-        
-        if (user.username === 'admin' || user.role === 'admin') {
-          toast({
-            title: 'Доступ запрещен',
-            description: 'Используйте локальные учетные данные администратора',
-            variant: 'destructive',
-          });
-          setLoading(false);
-          return;
-        }
 
         onLogin({
           id: user.id.toString(),
@@ -81,8 +98,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       }
     } catch (error) {
       toast({
-        title: 'Ошибка',
-        description: 'Не удалось подключиться к серверу',
+        title: 'Ошибка входа',
+        description: 'Неверный логин или пароль',
         variant: 'destructive',
       });
     } finally {
