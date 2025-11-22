@@ -22,13 +22,35 @@ export default function ColorsPage({ user }: { user: User }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    setColors([
-      { id: '1', name: 'Белый', hex: '#FFFFFF', usage: 15 },
-      { id: '2', name: 'Черный', hex: '#000000', usage: 12 },
-      { id: '3', name: 'Коричневый', hex: '#8B4513', usage: 8 },
-      { id: '4', name: 'Серый', hex: '#808080', usage: 5 },
-    ]);
+    const savedData = localStorage.getItem('colors_data');
+    if (savedData) {
+      try {
+        setColors(JSON.parse(savedData));
+      } catch (e) {
+        console.error('Ошибка загрузки цветов');
+        setColors([
+          { id: '1', name: 'Белый', hex: '#FFFFFF', usage: 15 },
+          { id: '2', name: 'Черный', hex: '#000000', usage: 12 },
+          { id: '3', name: 'Коричневый', hex: '#8B4513', usage: 8 },
+          { id: '4', name: 'Серый', hex: '#808080', usage: 5 },
+        ]);
+      }
+    } else {
+      setColors([
+        { id: '1', name: 'Белый', hex: '#FFFFFF', usage: 15 },
+        { id: '2', name: 'Черный', hex: '#000000', usage: 12 },
+        { id: '3', name: 'Коричневый', hex: '#8B4513', usage: 8 },
+        { id: '4', name: 'Серый', hex: '#808080', usage: 5 },
+      ]);
+    }
   }, []);
+
+  useEffect(() => {
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('colors_data', JSON.stringify(colors));
+    }, 1500);
+    return () => clearTimeout(saveTimeout);
+  }, [colors]);
 
 
 

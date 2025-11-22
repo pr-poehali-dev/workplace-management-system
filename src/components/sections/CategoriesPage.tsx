@@ -31,15 +31,39 @@ export default function CategoriesPage({ user }: { user: User }) {
   const canEdit = user.role === 'admin' || user.role === 'manager';
 
   useEffect(() => {
-    setCategories([
-      { id: 1, name: 'Ламинация', description: '', material_count: 0 },
-      { id: 2, name: 'Москитки', description: '', material_count: 0 },
-      { id: 3, name: 'Жесть', description: '', material_count: 0 },
-      { id: 4, name: 'Другое', description: '', material_count: 0 },
-      { id: 5, name: 'Сендвич', description: '', material_count: 0 },
-      { id: 6, name: 'Расходники', description: '', material_count: 0 },
-    ]);
+    const savedData = localStorage.getItem('categories_data');
+    if (savedData) {
+      try {
+        setCategories(JSON.parse(savedData));
+      } catch (e) {
+        console.error('Ошибка загрузки разделов');
+        setCategories([
+          { id: 1, name: 'Ламинация', description: '', material_count: 0 },
+          { id: 2, name: 'Москитки', description: '', material_count: 0 },
+          { id: 3, name: 'Жесть', description: '', material_count: 0 },
+          { id: 4, name: 'Другое', description: '', material_count: 0 },
+          { id: 5, name: 'Сендвич', description: '', material_count: 0 },
+          { id: 6, name: 'Расходники', description: '', material_count: 0 },
+        ]);
+      }
+    } else {
+      setCategories([
+        { id: 1, name: 'Ламинация', description: '', material_count: 0 },
+        { id: 2, name: 'Москитки', description: '', material_count: 0 },
+        { id: 3, name: 'Жесть', description: '', material_count: 0 },
+        { id: 4, name: 'Другое', description: '', material_count: 0 },
+        { id: 5, name: 'Сендвич', description: '', material_count: 0 },
+        { id: 6, name: 'Расходники', description: '', material_count: 0 },
+      ]);
+    }
   }, []);
+
+  useEffect(() => {
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('categories_data', JSON.stringify(categories));
+    }, 1500);
+    return () => clearTimeout(saveTimeout);
+  }, [categories]);
 
   const fetchCategories = async () => {
     try {

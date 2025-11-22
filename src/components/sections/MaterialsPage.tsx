@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -44,8 +44,26 @@ export default function MaterialsPage({ user }: { user: User }) {
       { id: 2, name: 'Черный' },
       { id: 3, name: 'Коричневый' },
     ]);
-    setMaterials([]);
+    
+    const savedData = localStorage.getItem('materials_data');
+    if (savedData) {
+      try {
+        setMaterials(JSON.parse(savedData));
+      } catch (e) {
+        console.error('Ошибка загрузки материалов');
+        setMaterials([]);
+      }
+    } else {
+      setMaterials([]);
+    }
   }, []);
+
+  useEffect(() => {
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('materials_data', JSON.stringify(materials));
+    }, 1500);
+    return () => clearTimeout(saveTimeout);
+  }, [materials]);
 
 
 

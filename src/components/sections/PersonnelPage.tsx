@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,14 +15,34 @@ interface Employee {
   id: string;
   fullName: string;
   username: string;
+  password?: string;
   role: 'admin' | 'manager' | 'employee';
 }
 
 export default function PersonnelPage({ user }: { user: User }) {
   const [employees, setEmployees] = useState<Employee[]>([
-    { id: '2', fullName: 'Начальник Иван', username: 'manager1', role: 'manager' },
-    { id: '3', fullName: 'Сотрудник Петр', username: 'employee1', role: 'employee' },
+    { id: '2', fullName: 'Начальник Иван', username: 'manager1', password: 'manager123', role: 'manager' },
+    { id: '3', fullName: 'Сотрудник Петр', username: 'employee1', password: 'employee123', role: 'employee' },
   ]);
+  const [showPasswords, setShowPasswords] = useState<{[key: string]: boolean}>({});
+
+  useEffect(() => {
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('employees_data', JSON.stringify(employees));
+    }, 1500);
+    return () => clearTimeout(saveTimeout);
+  }, [employees]);
+
+  useEffect(() => {
+    const savedData = localStorage.getItem('employees_data');
+    if (savedData) {
+      try {
+        setEmployees(JSON.parse(savedData));
+      } catch (e) {
+        console.error('Ошибка загрузки данных персонала');
+      }
+    }
+  }, []);
   const [showDialog, setShowDialog] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
@@ -37,21 +57,17 @@ export default function PersonnelPage({ user }: { user: User }) {
 
   const getRoleBadge = (role: string) => {
     const variants = {
-      admin: 'bg-red-500 text-white',
       manager: 'bg-blue-500 text-white',
       employee: 'bg-green-500 text-white',
     };
     const labels = {
-      admin: 'Руководитель',
       manager: 'Начальник',
       employee: 'Сотрудник',
     };
     return <Badge className={variants[role as keyof typeof variants]}>{labels[role as keyof typeof labels]}</Badge>;
   };
 
-  const allEmployees = user.role === 'admin' 
-    ? [{ id: '1', fullName: 'Администратор', username: 'admin', role: 'admin' as const }, ...employees]
-    : employees;
+  const allEmployees = employees.filter(e => e.role !== 'admin');
 
   return (
     <div className="space-y-4">
@@ -88,66 +104,71 @@ export default function PersonnelPage({ user }: { user: User }) {
       </div>
 
       <div className="grid gap-4">
-        {user.role === 'admin' && (
-          <Card>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <Icon name="Shield" size={24} className="text-red-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Администратор</h3>
-                  <p className="text-sm text-muted-foreground">admin</p>
-                </div>
-              </div>
-              {getRoleBadge('admin')}
-            </CardContent>
-          </Card>
-        )}
-        
-        {employees.map((employee) => (
+        {allEmployees.map((employee) => (
           <Card key={employee.id}>
-            <CardContent className="p-6 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Icon name="User" size={24} className="text-blue-600" />
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Icon name="User" size={24} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">{employee.fullName}</h3>
+                    <p className="text-sm text-muted-foreground">{employee.username}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">{employee.fullName}</h3>
-                  <p className="text-sm text-muted-foreground">{employee.username}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {getRoleBadge(employee.role)}
-                {canManage && (
-                  <>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setEditingEmployee(employee);
-                      setFormData({
-                        fullName: employee.fullName,
-                        username: employee.username,
-                        password: '',
-                        role: employee.role,
-                      });
-                      setShowDialog(true);
-                    }}>
-                      <Icon name="Edit" size={16} className="mr-1" />
-                      Изменить
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => {
-                      if (confirm(`Удалить сотрудника ${employee.fullName}?`)) {
-                        setEmployees(employees.filter(e => e.id !== employee.id));
-                        toast({
-                          title: 'Успешно',
-                          description: 'Сотрудник удален',
+                <div className="flex items-center gap-2">
+                  {getRoleBadge(employee.role)}
+                  {canManage && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setEditingEmployee(employee);
+                        setFormData({
+                          fullName: employee.fullName,
+                          username: employee.username,
+                          password: '',
+                          role: employee.role,
                         });
-                      }
-                    }}>
-                      <Icon name="Trash2" size={18} />
-                    </Button>
-                  </>
-                )}
+                        setShowDialog(true);
+                      }}>
+                        <Icon name="Edit" size={16} className="mr-1" />
+                        Изменить
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        if (confirm(`Удалить сотрудника ${employee.fullName}?`)) {
+                          setEmployees(employees.filter(e => e.id !== employee.id));
+                          toast({
+                            title: 'Успешно',
+                            description: 'Сотрудник удален',
+                          });
+                        }
+                      }}>
+                        <Icon name="Trash2" size={18} />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
+              {user.role === 'admin' && employee.password && (
+                <div className="flex items-center gap-2 mt-2 pt-3 border-t">
+                  <Label className="text-sm text-muted-foreground min-w-[60px]">Пароль:</Label>
+                  <div className="relative flex-1">
+                    <Input
+                      type={showPasswords[employee.id] ? 'text' : 'password'}
+                      value={employee.password}
+                      readOnly
+                      className="pr-10 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, [employee.id]: !prev[employee.id] }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <Icon name={showPasswords[employee.id] ? 'EyeOff' : 'Eye'} size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -198,9 +219,6 @@ export default function PersonnelPage({ user }: { user: User }) {
                 <SelectContent>
                   <SelectItem value="employee">Сотрудник</SelectItem>
                   <SelectItem value="manager">Начальник</SelectItem>
-                  {user.role === 'admin' && (
-                    <SelectItem value="admin">Администратор</SelectItem>
-                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -228,10 +246,17 @@ export default function PersonnelPage({ user }: { user: User }) {
               }
 
               if (editingEmployee) {
+                const updatedData = {
+                  ...editingEmployee,
+                  fullName: formData.fullName,
+                  username: formData.username,
+                  role: formData.role,
+                };
+                if (formData.password) {
+                  updatedData.password = formData.password;
+                }
                 setEmployees(employees.map(e => 
-                  e.id === editingEmployee.id 
-                    ? { ...e, fullName: formData.fullName, username: formData.username, role: formData.role }
-                    : e
+                  e.id === editingEmployee.id ? updatedData : e
                 ));
                 toast({
                   title: 'Успешно',
@@ -242,6 +267,7 @@ export default function PersonnelPage({ user }: { user: User }) {
                   id: Date.now().toString(),
                   fullName: formData.fullName,
                   username: formData.username,
+                  password: formData.password,
                   role: formData.role,
                 }]);
                 toast({
