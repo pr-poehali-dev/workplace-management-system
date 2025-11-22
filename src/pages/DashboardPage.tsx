@@ -13,7 +13,7 @@ import MaterialsPage from '@/components/sections/MaterialsPage';
 import CategoriesPage from '@/components/sections/CategoriesPage';
 import ColorsPage from '@/components/sections/ColorsPage';
 import SandwichPage from '@/components/sections/SandwichPage';
-import CuttingPage from '@/components/sections/CuttingPage';
+
 import ServerConfigPage from '@/components/sections/ServerConfigPage';
 import AdminSettingsPage from '@/components/sections/AdminSettingsPage';
 
@@ -22,7 +22,7 @@ interface DashboardPageProps {
   onLogout: () => void;
 }
 
-type Section = 'dashboard' | 'orders' | 'incoming' | 'warehouse' | 'shipping' | 'personnel' | 'defects' | 'materials' | 'categories' | 'colors' | 'sandwich' | 'cutting' | 'server-config' | 'admin-settings';
+type Section = 'dashboard' | 'orders' | 'incoming' | 'warehouse' | 'shipping' | 'personnel' | 'defects' | 'materials' | 'categories' | 'colors' | 'sandwich' | 'server-config' | 'admin-settings';
 
 const MENU_ITEMS = [
   { id: 'orders', label: 'Заявки', icon: 'ClipboardList', color: 'bg-red-500' },
@@ -35,7 +35,6 @@ const MENU_ITEMS = [
   { id: 'categories', label: 'Разделы', icon: 'FolderTree', color: 'bg-cyan-500' },
   { id: 'colors', label: 'Цвет', icon: 'Palette', color: 'bg-pink-500' },
   { id: 'sandwich', label: 'Сендвич', icon: 'Box', color: 'bg-amber-500' },
-  { id: 'cutting', label: 'Раскрой', icon: 'Scissors', color: 'bg-rose-500' },
   { id: 'server-config', label: 'Настройки сервера', icon: 'Settings', color: 'bg-slate-500', adminOnly: true },
   { id: 'admin-settings', label: 'Администрирование', icon: 'Shield', color: 'bg-gray-700', adminOnly: true },
 ];
@@ -65,8 +64,6 @@ export default function DashboardPage({ user, onLogout }: DashboardPageProps) {
         return <ColorsPage user={user} />;
       case 'sandwich':
         return <SandwichPage user={user} />;
-      case 'cutting':
-        return <CuttingPage user={user} />;
       case 'server-config':
         return <ServerConfigPage />;
       case 'admin-settings':

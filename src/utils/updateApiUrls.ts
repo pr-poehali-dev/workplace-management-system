@@ -12,7 +12,6 @@ export const getBackendUrl = (endpoint: string): string => {
     'shipments': '/api/shipments',
     'arrivals': '/api/arrivals',
     'defects': '/api/defects',
-    'cutting': '/api/cutting',
     'auth': '/api/auth',
   };
 
