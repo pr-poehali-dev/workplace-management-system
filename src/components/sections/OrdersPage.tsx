@@ -88,12 +88,10 @@ export default function OrdersPage({ user }: { user: User }) {
   }, []);
 
   useEffect(() => {
-    if (orders.length > 0) {
-      const saveTimeout = setTimeout(() => {
-        localStorage.setItem('orders_data', JSON.stringify(orders));
-      }, 1500);
-      return () => clearTimeout(saveTimeout);
-    }
+    const saveTimeout = setTimeout(() => {
+      localStorage.setItem('orders_data', JSON.stringify(orders));
+    }, 1500);
+    return () => clearTimeout(saveTimeout);
   }, [orders]);
 
   const getStatusColor = (status: Order['status']) => {
