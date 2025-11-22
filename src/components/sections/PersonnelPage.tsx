@@ -57,17 +57,19 @@ export default function PersonnelPage({ user }: { user: User }) {
 
   const getRoleBadge = (role: string) => {
     const variants = {
+      admin: 'bg-red-500 text-white',
       manager: 'bg-blue-500 text-white',
       employee: 'bg-green-500 text-white',
     };
     const labels = {
+      admin: 'Руководитель',
       manager: 'Начальник',
       employee: 'Сотрудник',
     };
     return <Badge className={variants[role as keyof typeof variants]}>{labels[role as keyof typeof labels]}</Badge>;
   };
 
-  const allEmployees = employees.filter(e => e.role !== 'admin');
+  const allEmployees = employees;
 
   return (
     <div className="space-y-4">
@@ -219,6 +221,9 @@ export default function PersonnelPage({ user }: { user: User }) {
                 <SelectContent>
                   <SelectItem value="employee">Сотрудник</SelectItem>
                   <SelectItem value="manager">Начальник</SelectItem>
+                  {user.role === 'admin' && (
+                    <SelectItem value="admin">Руководитель</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
